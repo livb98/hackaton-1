@@ -1,7 +1,7 @@
 import psycopg2
 import config
 
-def connect(query):
+def connect(query, result = False):
     try: 
 
         conn = psycopg2.connect(
@@ -14,8 +14,14 @@ def connect(query):
 
         cursor = conn.cursor()
         cursor.execute(query)
-        conn.commit()
-
+        
+        if result: 
+            return conn.fetchall()
+        
+        else:
+            conn.commit()
+            
+        
     except psycopg2.Error as e:
         print('Error connecting', e)
 
@@ -23,25 +29,28 @@ def connect(query):
         if conn:
             cursor.close()
             conn.close()
+            
 
 class Organiser:
-    def __init__(self,name):
-        self.name=name
+    def __init__(self,**kwargs):
+        for key, value in kwargs.items():
+            setattr(self,key,value)
         
     def data_org(self):
         self.name = input('name: ')
         query = f"INSERT INTO organiser (org_name) VALUES (\'{self.name}\')"
         connect(query)
     
-    def data_prj(self):
-        prj_name = input('project name: ')
-        prj_description = input('description: ')
-        prj_country = input('country: ')
-        prj_city = input('city: ')
-        prj_date_start = input('start (enter date as MM/DD/YYYY): ')
-        prj_date_end = input('end (enter date as MM/DD/YYYY): ')
-        prj_skills = input('skill needed (*optional): ')
-        prj_job = input ('specific job (*optional): ')
+    @classmethod
+    def data_prj(cls):
+        prj_name = ('project name: ')
+        prj_description = ('description: ')
+        prj_country = ('country: ')
+        prj_city = ('city: ')
+        prj_date_start = ('start (enter date as MM/DD/YYYY): ')
+        prj_date_end = ('end (enter date as MM/DD/YYYY): ')
+        prj_skills = ('skill needed (*optional): ')
+        prj_job =  ('specific job (*optional): ')
         while True:
             prj_flight = input('Paying for the flight:\n(1) yes\n(2) no\n')
             prj_flight=='1'
@@ -69,6 +78,8 @@ class Organiser:
                 print('Invalid answer')
         query = f'INSERT into project (prj_name, prj_description, prj_country, prj_city, prj_date_start, prj_date_end, prj_skills, prj_job, prj_flight, prj_house, prj_food, prj_bus, org_id) VALUES (\'{prj_name}\', \'{prj_description}\',\'{prj_country}\',\'{prj_city}\', \'{prj_date_start}\', \'{prj_date_end}\', \'{prj_skills}\', \'{prj_job}\', \'{prj_flight}\', \'{prj_house}\', \'{prj_food}\', \'{prj_bus}\', (SELECT org_id FROM organiser where org_name = \'{self.name}\'))'       
         connect(query)  
+        
+        return Organiser(name=prj_name,description=prj_description)
           
     def check_event(self, volunteer_info):
         pass
@@ -95,44 +106,21 @@ class Volunteer:
         vol_skill = input('skill (*optional): ')
         vol_phone = input('phone number: ')
         vol_mail = input('email: ')
-        while True:
-            vol_flight = input('Paying for the flight:\n(1) yes\n(2) no\n(3) I don\'t care\n')
-            vol_flight=='1'
-            if vol_flight == '1' or vol_flight == '2' or vol_flight == '3':
-                break
-            else:
-                print('Invalid answer')
-        while True:
-            vol_house = input('Paying for the house:\n(1) yes\n(2) no\n(3) I don\'t care\n')
-            if vol_house == '1' or vol_flight == '2' or vol_flight == '3':
-                break
-            else:
-                print('Invalid answer')
-        while True:
-            vol_food = input('Paying for the food during the project:\n(1) yes\n(2) no\n(3) I don\'t care\n')
-            if vol_food == '1' or vol_food == '2' or vol_flight == '3':
-                break
-            else:
-                print('Invalid answer')
-        while True:
-            vol_bus = input('Paying for the travel to the project:\n(1) yes\n(2) no\n(3) I don\'t care\n')
-            if vol_bus == '1' or vol_flight == '2' or vol_flight == '3':
-                break
-            else:
-                print('Invalid answer')
-        query = f'INSERT INTO volunteer (vol_fname, vol_lname, vol_country, vol_city, vol_date_start, vol_date_end, vol_job, vol_skill, vol_phone, vol_mail, vol_flight, vol_house, vol_food, vol_bus, prj_id) VALUES (\'{vol_fname}\', \'{vol_lname}\',\'{vol_country}\',\'{vol_city}\', \'{vol_date_start}\', \'{vol_date_end}\', \'{vol_job}\', \'{vol_skill}\', \'{vol_phone}\',\'{vol_mail}\', \'{vol_flight}\', \'{vol_house}\', \'{vol_food}\', \'{vol_bus}\',NULL)'       
-        connect(query)   
+        query = f'INSERT INTO volunteer (vol_fname, vol_lname, vol_country, vol_city, vol_date_start, vol_date_end, vol_job, vol_skill, vol_phone, vol_mail) VALUES (\'{vol_fname}\', \'{vol_lname}\',\'{vol_country}\',\'{vol_city}\', \'{vol_date_start}\', \'{vol_date_end}\', \'{vol_job}\', \'{vol_skill}\', \'{vol_phone}\',\'{vol_mail}\')'
+        connect(query) 
+        organiser=[]  
+        organiser.append
         
-    def get_info(self,organiser):
-        pass
-        # country
-        # city
-        # date_start
-        # date_end
-        # skills
-        # job
-        match_query=f'''SELECT vol_country FROM volunteer WHERE vol_country = {organiser['country']}
-        AND {organiser['city']} = vol_city AND {organiser['skills']} = vol_skill AND {organiser['job']} = vol_job AND [organiser]'''
+    def get_available_vol(self,organiser):
+        match_query=f'''SELECT vol_country FROM volunteer WHERE 
+        vol_country = {organiser['country']}
+        AND {organiser['city']} = vol_city
+        AND {organiser['skills']} = vol_skill
+        AND {organiser['job']} = vol_job
+        AND {organiser['start_date']} >= vol_start_date
+        AND {organiser['end_date']} <= vol_end_date'''
+
+        print(connect(match_query,result=True))
         
 
 class User(Organiser,Volunteer):
@@ -147,42 +135,9 @@ class User(Organiser,Volunteer):
             self.vol_data()
         else:
             print('invalid answer')
-            
+ 
+a = Volunteer("p")
+a.get_info()
 
-# class Match(Organiser,Volunteer):
-#     def __init__(self, vol_country,prj_country):
-#         Volunteer.__init__(vol_country)
-#         Organiser.__init__(prj_country)
-#     def check_same_input(self):
-#         return self.vol_data == self.data_prj
-#     # def match(self):
-#     #     if self.user ==
+org1 = Organiser(city=)
 
-
-v = Volunteer
-o = Organiser
-vol_country = "peru"
-prj_country="peru"
-obj_c = Match(vol_country, prj_country)
-print(obj_c.check_same_input())  # Output: True
-
-
-
-
-# class ClassA:
-#     def __init__(self, value):
-#         self.value_a = value
-
-# class ClassB:
-#     def __init__(self, value):
-#         self.value_b = value
-
-# class ClassC(ClassA, ClassB):
-#     def __init__(self, value_a, value_b):
-#         super().__init__(value_a)
-#         ClassB.__init__(self, value_b)  # Initialize ClassB explicitly
-
-#     def check_same_input(self):
-#         return self.value_a == self.value_b
-
-# Example usage
