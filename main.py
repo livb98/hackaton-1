@@ -42,7 +42,7 @@ class Organiser:
         connect(query)
     
     @classmethod
-    def data_prj(cls):
+    def data_prj(self,cls):
         prj_name = ('project name: ')
         prj_description = ('description: ')
         prj_country = ('country: ')
